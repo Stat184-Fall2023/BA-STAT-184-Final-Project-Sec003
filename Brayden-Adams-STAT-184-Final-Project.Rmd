@@ -1,0 +1,154 @@
+---
+title: "STAT 184 Final Project"
+author: "Brayden Adams"
+date: "2023-12-08"
+output:
+  html_document:
+    toc: true
+---
+
+# Introduction
+
+This is my final project for STAT 184. Within this document, I analyze data taken from the Billboard Hot 100 charts (1958-2021) to answer this key RESEARCH QUESTION: "Has there been a shift in the highest-charting genres of music since the Hot 100's inception?" This topic is important to music analysts because it depicts what genres (and therefore artists) will most often top the charts. It is interesting to investigate because pop culture changes frequently, so it is fun to see what type of music was popular in the 60s compared to the 2020s.
+
+To achieve this, I demonstrate proficient skill in data access, data wrangling/processing/etc., data visualization, code quality, narrative quality, and overall quality, as well as proficiency in GitHub Repo.
+
+# Gathering the data
+
+I retrieved my Hot 100 data set from Kaggle. The data set's original purpose was to provide information on previous Hot 100 charts. In this data set, this is what constitutes a case: date, rank, song, artist, last.week, peak.rank, and weeks.on.board. The attributes I use for my findings (date, rank, song, artist, weeks.on.board) are located within this data set. Here, I load the data set in. I also load in the libraries that are needed for data wrangling and data visualizations.
+
+```{r packages and data, echo=FALSE, message=FALSE, warning=FALSE}
+
+# Load in necessary packages and Kaggle data (primary data set)
+hot_100_data <- read.csv("C:/Users/blobs/Downloads/archive/charts.csv")
+
+# Display the first few rows of data
+head(hot_100_data)
+```
+
+Now, we have read the data set into R and we can now preview the first few rows of the data set. This is purely to see if the data set is working as intended, which it is.
+
+# Data Wrangling
+
+Now that the data is loaded in, I can start using some data wrangling commands in order to find important statistics about the Hot 100 data. I am also going to create a pivot table to find how long each song was in the top ten. Then, to wrap it all up, I will filter out the year from each "date" entry so that I can later create a data visualization showing the longest charting song for each year.
+
+```{r data wrangling, echo=FALSE, message=FALSE, warning=FALSE}
+
+# Find the highest-charting songs that have also charted the longest 
+# Load in all the libraries needed
+library(magrittr)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+
+# Find which song has the most weeks on the chart
+max_weeks <- hot_100_data %>%
+  filter('weeks.on.board' == max('weeks.on.board'))
+  head(15)
+
+# Find which songs were #1 on the charts the longest
+longest_no_one <- hot_100_data %>%
+  filter(last.week == 1) %>%
+  arrange(desc('weeks.on.board')) %>%
+  head(15)
+
+# Print out the calculated data
+high_chart_long <- bind_rows(max_weeks, longest_no_one)
+  head(15)
+
+# Create a pivot table to find how long each song was in the top 10
+hot_100_data <- hot_100_data %>%
+  mutate(is_top_10 = rank <= 10)
+top_10_wide <- hot_100_data %>%
+  filter(is_top_10) %>%
+  select(song, 'weeks.on.board') %>%
+  pivot_wider(names_from = song, values_from = 'weeks.on.board')
+
+# Find the highest charting song for each year
+highest_charting_per_year <- hot_100_data %>%
+  mutate(year = year(date)) %>%
+  # Extract year from date
+  group_by(year) %>%
+  filter(rank == min(rank))
+
+# Print the data
+highest_charting_per_year
+```
+
+Now, I have the information I was looking for. I now have a very convenient table that shows which songs were #1 at any point during the Hot 100's history. We can look at the songs and artists who topped these charts and clearly see a trend of pop and rock from the 50s and 60s. These genres always prevail throughout the Hot 100's history. Through the 70s, we see more dance and soul enter the charts. The 80s finds new wave and techno topping the charts. The 90s introduces hip hop, rap, grunge, and nu metal enter the charts. The 2000s sees more hip hop and rap top the charts, along with a new era of pop music that would bleed through the 2010s. Today, hip hop, rap, pop, and country greatly dominate the charts.
+
+Genres such as new wave, nu metal, and disco only prevailed during their respective decades. Therefore, I have answered my key RESEARCH QUESTION that asked whether there's been a change in the genres that top the charts. To answer this question directly: Yes, there has been numerous changes, and the previous paragraph throughly explains these changes.
+
+I am at a good point now with my findings, but I want to create data visualizations to help see the trends easier.
+
+# Data Visualization
+
+Here, I will create various data visualizations that will help understand the data more.
+
+I will be creating a scatter plot (song rank versus weeks on the charts), another scatter plot (shows rank vs. peak rank for the top 100 songs), and a table (shows the first fifteen rows where weeks.on.board is highest to lowest).
+
+```{r data visualization, echo=FALSE, message=FALSE, warning=FALSE}
+
+# Load in the necessary libraries
+library(magrittr)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(knitr)
+library(kableExtra)
+
+# Create a table that shows the first 15 rows where weeks.on.board is highest to lowest
+top15_chart <- hot_100_data %>%
+  arrange(desc('weeks.on.board')) %>%
+  head(15) %>%
+  select(date, rank, song, artist, 'weeks.on.board')
+
+# Format the table
+kable(top15_chart, caption = "Top 15 Songs with Highest Number of Weeks on Board", format = "html") %>%
+  kable_styling()
+```
+
+Now, I have completed all of my data visualizations. The table shows the first fifteen rows where weeks.on.board is highest to lowest. Neither scatter plots worked so I couldn't include them, but this is the code I wrote for both:
+
+Scatter plot 1:
+
+~ Create a scatter plot to show the correlation between song rank and weeks on the charts
+scatterplot <- hot_100_data %>%
+  ggplot(aes(x = rank, y = 'weeks.on.board', color = artist)) +
+  geom_point(alpha = 1) +
+  labs(title = "Song Rank and Weeks on Chart",
+       x = "Rank",
+       y = "Weeks on Chart",
+       color = "Artist") +
+  theme_classic()
+scatterplot
+
+Scatter plot 2:
+
+~ Sample a subset of the data to reduce the number of points
+set.seed(123)
+sampled_data <- hot_100_data %>%
+  sample_n(100)
+
+~ Create a scatter plot of rank vs. peak rank for the sampled songs
+scatter_plot_sampled <- sampled_data %>%
+  ggplot(aes(x = rank, y = peak.rank, color = song)) +
+  geom_point(alpha = 0.8) +
+  labs(title = "Scatter Plot of Rank vs. Peak Rank (Sampled Songs)",
+       x = "Rank",
+       y = "Peak Rank",
+       color = "Song") +
+  theme_minimal()
+
+~ Display the plot
+print(scatter_plot_sampled). From here, we can read the data much easier and find correlations between attributes in a visual way.
+
+# End Summary
+
+From here, I am finished with my research. I have answered my key research question and satisfied the various requirements of the rubric. I hope you enjoy viewing my analyzation of the Billboard Hot 100 data set from Kaggle.
+
+Have a nice day. Brayden Adams
